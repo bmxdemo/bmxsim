@@ -50,9 +50,11 @@ class DataStream(object):
         if reader is None:
             reader=CrimeReader()
         self.setNuList(reader.freq)
+        print "Set frequencies from crime reader:", self.telescope.numin, self.telescope.numax, len(self.nulist)
         ## set the data fields
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i,nu in enumerate(self.nulist):
+            print "Doing ",i,nu
             field=reader.named_slice(field,i)
             perfreqstreams=getIntegratedSignal(self.telesecope.beams, self.tlist,field,nu, Npix=201, Nfwhm=3)
             for b,stream in enumerate(perfreqsteams):
