@@ -18,7 +18,7 @@ class TelescopeBase(object):
         self.beams=beams
         self.numin=float(numin)
         self.numax=float(numax)
-        self.loc=location
+        self.location=location
         self.name=name
 
     def setNuParams(self, numin, numax):

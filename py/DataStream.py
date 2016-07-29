@@ -38,7 +38,7 @@ class DataStream(object):
         dnu=(nulist[-1]-nulist[0])/(len(nulist)-1)
         self.telescope.setNuParams(nulist[0], nulist[-1])
         
-    def fillStream(self,reader=None,field='cosmo',Npix=201, Nfwhm=3):
+    def fillStream(self,reader=None,whichfield='cosmo',Npix=201, Nfwhm=3):
         """ 
         Fills stream using ObserveSky and crimereader objects.
         reader is a CrimerReader instance, if None, it will take its own
@@ -55,8 +55,8 @@ class DataStream(object):
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i,nu in enumerate(self.nulist):
             print "Doing ",i,nu
-            field=reader.named_slice(field,i)
-            perfreqstreams=getIntegratedSignal(self.telesecope.beams, self.tlist,field,nu, Npix=201, Nfwhm=3)
-            for b,stream in enumerate(perfreqsteams):
+            field=reader.named_slice(whichfield,i)
+            perfreqstreams=getIntegratedSignal(self.telescope, self.tlist,field,nu, Npix=201, Nfwhm=3)
+            for b,stream in enumerate(perfreqstreams):
                 self.streams[b][i,:]=stream
     

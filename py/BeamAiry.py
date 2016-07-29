@@ -1,6 +1,7 @@
 #
 # Idealised airy beam
 #
+import numpy as np
 import scipy.constants as const
 from scipy.special import jn
 from BeamBase import BeamBase
@@ -36,7 +37,9 @@ class BeamAiry(BeamBase):
             delta_phi, delta_theta in *radians*
             nu -- observing frequency in MHz
         """
-        x=pi*self.DoverLam(nu)*theta.radian
+        ## note flat sky approx!! FIX!!!
+        theta=(delta_phi**2+delta_theta**2) 
+        x=np.pi*self.DoverLam(nu)*theta
         return (2*jn(1,x))**2/x**2
 
     def fwhm(self,nu):

@@ -3,6 +3,7 @@
 #
 import numpy as np
 from astropy.coordinates import AltAz
+import astropy.units as u
 
 class BeamBase(object):
     """
@@ -48,6 +49,13 @@ class BeamBase(object):
                 toret[i,j]=self.beam(reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu)
         return toret
             
+    def AltAz(self, time, location):
+        """Returns the astropy AltAz object for
+        time : astropy Time object
+        location : astropy Location object
+        returns: astropy AltAz object
+        """
+        return AltAz(obstime=time,location=location, alt=self.alt*u.radian, az=self.az*u.radian)
 
 # add more functions to deal with x,t,alt,az manipulations as required
 
