@@ -38,7 +38,7 @@ class BeamAiry(BeamBase):
             nu -- observing frequency in MHz
         """
         ## note flat sky approx!! FIX!!!
-        theta=(delta_phi**2+delta_theta**2) 
+        theta=np.sqrt(delta_phi**2+delta_theta**2) 
         x=np.pi*self.DoverLam(nu)*theta
         return (2*jn(1,x))**2/x**2
 
