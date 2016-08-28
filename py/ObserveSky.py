@@ -28,6 +28,7 @@ def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     for beam in beams:
         reso=Nfwhm*beam.fwhm(nu)/Npix
         beam_img=beam.beamImage(Npix, reso, nu)
+        beam_img=beam_img**2 ## amplitude to power
         beam_img/=beam_img.sum()
         Nside=int(np.sqrt(len(sigslice)/12))
         ## this defines a lambda vec2pix function to feed to projmap later

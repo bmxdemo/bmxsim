@@ -13,7 +13,7 @@ def getTimeList(tstart=Time('2016-08-01 00:00:00')+4*u.hour, dt=1, Ns=3600):
     Ns -- number of samples, integer
     """
     ## in august we are 4 hours of UTC, otherwise 5
-    return [tstart+dt*u.s for i in range(Ns)]
+    return [tstart+i*dt*u.s for i in range(Ns)]
 
 class DataStream(object):
     def __init__ (self, telescope, tlist=getTimeList()):
