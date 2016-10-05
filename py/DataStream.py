@@ -30,6 +30,15 @@ class DataStream(object):
         self.streams=[[None]*Nbeams]
 
 
+    def nuMin(self):
+        return self.nulist[0]
+    def nuMax(self):
+        return self.nulist[-1]
+    def tMax_h(self):
+        return (self.tlist[-1]-self.tlist[0])/(3600*u.s)
+                        
+    
+        
     def setNuList(self, nulist):
         """ sets nulist to nulist and updated parameters in the telescope obj
             nulist : list of frequencies [MHz]

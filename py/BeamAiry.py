@@ -40,7 +40,11 @@ class BeamAiry(BeamBase):
         ## note flat sky approx!! FIX!!!
         theta=np.sqrt(delta_phi**2+delta_theta**2) 
         x=np.pi*self.DoverLam(nu)*theta
-        return (2*jn(1,x))**2/x**2
+        if (x==0):
+            beam=1.0
+        else:
+            beam=(2*jn(1,x))**2/x**2
+        return beam
 
     def fwhm(self,nu):
         """ returns beam FWHM in radians """

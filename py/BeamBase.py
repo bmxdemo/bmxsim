@@ -46,7 +46,13 @@ class BeamBase(object):
         toret=np.zeros((N,N))
         for i in range (N):
             for j in range(N):
-                toret[i,j]=self.beam(reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu)
+                b=self.beam(reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu)
+                if (np.isnan(b)):
+                    print "Beam is NaN. Not good!"
+                    print i,j, reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu
+                    stop()
+                toret[i,j]=b
+
         return toret
             
     def AltAz(self, time, location):
