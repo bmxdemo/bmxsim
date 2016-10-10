@@ -35,7 +35,7 @@ class DataStream(object):
     def nuMax(self):
         return self.nulist[-1]
     def tMax_h(self):
-        return (self.tlist[-1]-self.tlist[0])/(3600*u.s)
+        return (self.tlist[-1]-self.tlist[0]).to(u.h).value
                         
     
         
