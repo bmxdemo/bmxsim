@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import sys,pylab
-sys.path.append('py/')
-import DataStream
-from BMXDemo import BMXDemoSingleDish
+import bmxsim as bs
 import cPickle as cP
 from optparse import OptionParser
 import matplotlib.pyplot as plt

@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import numpy as np
 import sys,pylab
-sys.path.append('py/')
-import DataStream
-from BMXDemo import BMXDemoSingleDish
+import bmxsim as bs
 import cPickle as cP
-
 from optparse import OptionParser
 
 
@@ -24,8 +21,8 @@ for option in parser.option_list:
         option.help += (" " if option.help else "") + "[default: %default]"
 (o, args) = parser.parse_args()
 
-telescope=BMXDemoSingleDish()
-tlist=DataStream.getTimeList(dt=o.dt, Ns=int((o.tmax_h*3600.)/o.dt)+1)
-stream=DataStream.DataStream(telescope,tlist=tlist)
+telescope=bs.BMXDemoSingleDish()
+tlist=bs.getTimeList(dt=o.dt, Ns=int((o.tmax_h*3600.)/o.dt)+1)
+stream=bs.DataStream(telescope,tlist=tlist)
 stream.fillStream(reader=None,whichfield=o.whichfield,Npix=201,Nfwhm=3)
 cP.dump(stream,open(o.outfile,'w'))
