@@ -4,6 +4,7 @@
 import numpy as np
 from astropy.coordinates import AltAz
 import astropy.units as u
+import scipy.constants as const
 
 class BeamBase(object):
     """
@@ -31,10 +32,29 @@ class BeamBase(object):
         """
         raise NotImplemented
 
-    def fwhm(self,nu):
-        """ returns beam FWHM in radians """
+    
+    def hpbw(self,nu):
+        """ returns Half Power Beam Width in radians """
         raise NotImplemented
 
+    def fwhm(self,nu):
+        """ returns full width half maximum in radians
+        """
+        raise NotImplemented
+    
+    def Omega(self,nu):
+        """ returns beam area in solid angle (radians^2) 
+            By default, we implent https://science.nrao.edu/facilities/vla/proposing/TBconv
+            pi/(4*ln(2))=1.13309
+        """
+        return 1.13309*self.hpbw(nu)**2
+    
+    def Jy2mK(self,flux,nu):
+        """ convert Jy to mK into receiver temperature """
+        lamb=const.c/(1e6*nu)
+        Kelvin=lamb**2/(2*const.k*self.Omega(nu))*flux*1e-26
+        return Kelvin*1e3
+    
     def beamImage (self, N, reso, nu):
         """ returns beam image.
         N - number of pixels in x,y directions

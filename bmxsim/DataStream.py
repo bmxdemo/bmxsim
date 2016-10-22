@@ -47,13 +47,15 @@ class DataStream(object):
         dnu=(nulist[-1]-nulist[0])/(len(nulist)-1)
         self.telescope.setNuParams(nulist[0], nulist[-1])
         
-    def fillStream(self,reader=None,whichfield='cosmo',Npix=201, Nfwhm=3):
+    def fillStream(self,reader=None,whichfield='cosmo+gfree+gsync',Npix=201, Nfwhm=3,
+                   psources=None):
         """ 
         Fills stream using ObserveSky and crimereader objects.
         reader is a CrimerReader instance, if None, it will take its own
         field specifies which field in CrimeReader to use
 
-        For Npix, Nfwhm, see observesky
+        For Npix, Nfwhm, see ObserveSky.py
+        if psoruces is not None, add point sources
 
         """
         if reader is None:
@@ -64,8 +66,15 @@ class DataStream(object):
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i,nu in enumerate(self.nulist):
             print "Doing ",i,nu
-            field=reader.named_slice(whichfield,i)
-            perfreqstreams=getIntegratedSignal(self.telescope, self.tlist,field,nu, Npix=201, Nfwhm=3)
+            if whichfield is not None:
+                field=reader.named_slice(whichfield,i)
+                perfreqstreams=getIntegratedSignal(self.telescope, self.tlist,field,nu, Npix=201, Nfwhm=3)
+            else:
+                perfreqstreams=[np.zeros(len(self.tlist)) for i in range(len(self.telescope.beams))]
+            if (psources is not None):
+                perfreqs=getPointSourceSignal(self.telescope, self.tlist, psources, nu)
+                for i,s in enumerate(perfreqs):
+                    perfreqstreams[i]+=s
             for b,stream in enumerate(perfreqstreams):
                 self.streams[b][i,:]=stream
     

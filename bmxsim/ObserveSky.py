@@ -5,19 +5,19 @@
 import numpy as np
 from astropy.time import Time, TimeMJD
 from astropy import units as u
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS, FK5
-from astropy.coordinates import get_sun
+import astropy.coordinates as apc
 import healpy as hp
-
+import astropy.coordinates.sky_coordinate as X
+import sys
 
 def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     """ Integrate the smooth component of the signal:
+        telescope : telescope object to simulate
         tlist : list of Time object where you want signal integrated
         sigslice : CrimeReader slice
-        nu : frequnecy
+        nu : frequency
         Npix : number of pixels in the beam image to integrate over
         Nfwhm : total size of beam image to use
-        beams : list of beams to simulate.
         returns: A list of np arrays of length of tslice corresponding to 
                 power measured at times tlist. If single beam (beams = integer):
                 return that particular np array.
@@ -35,17 +35,62 @@ def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
         intlist=[]
         for i,t in enumerate(tlist):
             aaz=beam.AltAz(t, telescope.location)
-            skyc=aaz.transform_to(FK5)
+            skyc=aaz.transform_to(apc.ICRS)
             rot=(skyc.ra.deg, skyc.dec.deg, 0.)
             proj=hp.projector.GnomonicProj(xsize = Npix, ysize = Npix, rot = rot, reso = reso*180*60/np.pi)
             mp=proj.projmap(sigslice,vec2pix)
             csig=(mp*beam_img).sum()
             print i,csig,'\r',
+            sys.stdout.flush()
             intlist.append(np.array(csig))
         toret.append(intlist)
-    if (type(beams)==int):
-        return toret[beams]
-    else:
-        return toret
+    return toret
 
+
+def getPointSourceSignal(telescope, tlist, sources, nu):
+    """ Integrate the point-source component of the signal:
+        telescope : telescope object to simulate
+        tlist : list of Time object where you want signal integrated
+        sourcelist : an object of type PointSourceList
+        nu : frequency
+        returns: A list of np arrays of length of tslice corresponding to 
+                power measured at times tlist. If single beam (beams = integer):
+                return that particular np array.
+    """
+    beams=telescope.beams
+    toret=[]
+    srcf=sources.skyCoordList_fixed()
+    for beam in beams:
+        li=np.zeros(len(tlist))
+        for i,t in enumerate(tlist):
+            aaz=beam.AltAz(t, telescope.location)
+            skyc=apc.SkyCoord(aaz).transform_to(apc.ICRS)
+            ## there is a stupid bug in astropy -- this seems to be the only way
+            ## to make it "forget" its locationa, otherwise spherical_offsets_to
+            ## fails claiming frame is wrong.
+            skyc=apc.SkyCoord(ra=skyc.ra, dec=skyc.dec)
+            sig=0.0
+            #
+            # For efficiency, let's do fixed and movable separately
+            #
+            # first fixed sources
+            sig=0
+            if srcf is not None:
+                ofs=skyc.spherical_offsets_to(srcf)
+                beamsup=beam.beam(ofs[0].rad,ofs[1].rad,nu)
+                # total flux is sum over sources of flux * beam supression
+                sig+=(beamsup*sources.fluxes_mK_fixed(nu, beam)).sum()
+    
+            srcm=sources.skyCoordList_movable(t,telescope)
+            if srcm is not None:
+                # next movable sources (moon, sun)
+                ofs=skyc.spherical_offsets_to(srcm)
+                beamsup=beam.beam(ofs[0].rad,ofs[1].rad,nu)
+                # total flux is sum over sources of flux * beam supression
+                sig+=(beamsup*sources.fluxes_mK_movable(nu,beam)).sum()
+            li[i]=sig
+            print i,sig,'\r',
+            sys.stdout.flush()
+        toret.append(li)
+    return toret
 

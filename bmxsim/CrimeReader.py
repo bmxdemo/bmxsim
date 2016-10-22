@@ -41,21 +41,27 @@ class CrimeReader:
         self.gsync_prefix='gsync/gsync_'
         self.ptso_prefix='psources/psources_'
         
-    def named_slice(self,name,i):
-        if name=='cosmo':
-            return self.cosmo_slice(i)
-        elif name=='egfree':
-            return self.egfree_slice(i)
-        elif name=='gfree':
-            return self.gfree_slice(i)
-        elif name=='gsync':
-            return self.gsync_slice(i)
-        elif name=='ptso':
-            return self.ptso_slice(i)
-        else:
-            print "bad name slice in named_slice"
-            raise NotImplemented
-            
+    def named_slice(self,names,i):
+        toret=None
+        for name in names.split("+"):
+            if name=='cosmo':
+                sli=self.cosmo_slice(i)
+            elif name=='egfree':
+                sli=self.egfree_slice(i)
+            elif name=='gfree':
+                sli=self.gfree_slice(i)
+            elif name=='gsync':
+                sli=self.gsync_slice(i)
+            elif name=='ptso':
+                sli=self.ptso_slice(i)
+            else:
+                print "bad name slice in named_slice"
+                raise NotImplemented
+            if toret is None:
+                toret=sli
+            else:
+                toret+=sli
+        return toret
 
     def cosmo_slice(self,i):
         if (self.cosmo_slices[i]==None):

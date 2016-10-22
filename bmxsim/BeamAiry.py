@@ -40,13 +40,25 @@ class BeamAiry(BeamBase):
         ## note flat sky approx!! FIX!!!
         theta=np.sqrt(delta_phi**2+delta_theta**2) 
         x=np.pi*self.DoverLam(nu)*theta
-        if (x==0):
-            beam=1.0
+        if (type(x)==type(1.0)) or (type(x)==np.float64):
+            if (x==0):
+                beam=1.0
+            else:
+                beam=(2*jn(1,x))**2/x**2
         else:
+        # we must be dealing with a list
             beam=(2*jn(1,x))**2/x**2
+            beam[np.where(x==0)]=1.0
         return beam
 
-    def fwhm(self,nu):
-        """ returns beam FWHM in radians """
+    def hpbw(self,nu):
+        """ returns Half Power Beam Width in radians 
+            see e.g https://arxiv.org/pdf/1609.09376.pdf"""
         return 1.028/self.DoverLam(nu)
-            
+
+    def fwhm(self,nu):
+        """ returns full width half maximum in radians
+        """
+        return 1.41/self.DoverLam(nu)
+
+
