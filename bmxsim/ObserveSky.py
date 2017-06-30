@@ -9,8 +9,9 @@ import astropy.coordinates as apc
 import healpy as hp
 import astropy.coordinates.sky_coordinate as X
 import sys
+from matplotlib.pyplot import *
 
-def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
+def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     """ Integrate the smooth component of the signal:
         telescope : telescope object to simulate
         tlist : list of Time object where you want signal integrated
@@ -22,7 +23,7 @@ def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
                 power measured at times tlist. If single beam (beams = integer):
                 return that particular np array.
     """
-
+    ion()
     beams=telescope.beams
     toret=[]
     for beam in beams:
@@ -40,6 +41,17 @@ def getIntegratedSignal (telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
             proj=hp.projector.GnomonicProj(xsize = Npix, ysize = Npix, rot = rot, reso = reso*180*60/np.pi)
             mp=proj.projmap(sigslice,vec2pix)
             csig=(mp*beam_img).sum()
+
+            # Test plots
+            if 0:
+                clf()
+                subplot(1,2,1)
+                imshow(mp); #axis('square')
+                subplot(1,2,2)
+                imshow(beam_img); #axis('square')
+                show()
+                pause(0.01)
+
             print i,csig,'\r',
             sys.stdout.flush()
             intlist.append(np.array(csig))

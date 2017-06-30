@@ -62,19 +62,27 @@ class DataStream(object):
             reader=CrimeReader()
         self.setNuList(reader.freq)
         print "Set frequencies from crime reader:", self.telescope.numin, self.telescope.numax, len(self.nulist)
+
         ## set the data fields
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i,nu in enumerate(self.nulist):
             print "Doing ",i,nu
             if whichfield is not None:
+                # Read input map
                 field=reader.named_slice(whichfield,i)
-                perfreqstreams=getIntegratedSignal(self.telescope, self.tlist,field,nu, Npix=201, Nfwhm=3)
+                # Generate time stream
+                perfreqstreams=getIntegratedSignal(self.telescope, self.tlist, field, nu, Npix=201, Nfwhm=3)
             else:
+                # Return Zero
                 perfreqstreams=[np.zeros(len(self.tlist)) for i in range(len(self.telescope.beams))]
+                
+            # Add point sources if requested
             if (psources is not None):
                 perfreqs=getPointSourceSignal(self.telescope, self.tlist, psources, nu)
                 for i,s in enumerate(perfreqs):
                     perfreqstreams[i]+=s
+
+            # Populate stream object
             for b,stream in enumerate(perfreqstreams):
                 self.streams[b][i,:]=stream
     

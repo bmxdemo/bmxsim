@@ -42,6 +42,16 @@ class CrimeReader:
         self.ptso_prefix='psources/psources_'
         
     def named_slice(self,names,i):
+        """Read field by signal type and slice index. 
+           names = 'cosmo', 'egfree', 'gfree', 'gsync', 'ptso'
+           i = slice index
+           
+           Returns healpix map 
+
+           Can combine fields with '+' between
+           e.g. field = self.named_slice('cosmo+gsync',0)
+        """
+        
         toret=None
         for name in names.split("+"):
             if name=='cosmo':
