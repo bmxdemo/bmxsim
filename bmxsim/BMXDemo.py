@@ -1,10 +1,11 @@
 #
 # BMX Demo Telescopes
 #
-from TelescopeBase import TelescopeBase
-from BeamAiry import BeamAiry
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import AltAz, EarthLocation
 import astropy.units as u
+from .TelescopeBase import TelescopeBase
+from .BeamAiry import BeamAiry
+
 class BMXDemoSingleDish (TelescopeBase):
     """
     A single dish in the basin
@@ -18,7 +19,7 @@ class BMXDemoSingleDish (TelescopeBase):
         TelescopeBase.__init__(self, beams, 800., 1400.,
                                EarthLocation(lat=40.87792*u.deg, lon=-72.85852*u.deg, height=0*u.m),
                                "BMXDemoSingleDish")
-                               
+
     def BeamAltAz(self, time):
         """ return AltAz object given time """
         return [AltAz(obstime=time,location=self.location(),alt=b.alt, az=b.az)
