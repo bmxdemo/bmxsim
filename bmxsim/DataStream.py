@@ -36,9 +36,9 @@ class DataStream(object):
         return self.nulist[-1]
     def tMax_h(self):
         return (self.tlist[-1]-self.tlist[0]).to(u.h).value
-                        
-    
-        
+
+
+
     def setNuList(self, nulist):
         """ sets nulist to nulist and updated parameters in the telescope obj
             nulist : list of frequencies [MHz]
@@ -46,10 +46,10 @@ class DataStream(object):
         self.nulist=nulist
         dnu=(nulist[-1]-nulist[0])/(len(nulist)-1)
         self.telescope.setNuParams(nulist[0], nulist[-1])
-        
+
     def fillStream(self,reader=None,whichfield='cosmo+gfree+gsync',Npix=201, Nfwhm=3,
-                   psources=None):
-        """ 
+                   psources=None, parallel=False):
+        """
         Fills stream using ObserveSky and crimereader objects.
         reader is a CrimerReader instance, if None, it will take its own
         field specifies which field in CrimeReader to use
@@ -65,24 +65,17 @@ class DataStream(object):
 
         ## set the data fields
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
-        for i,nu in enumerate(self.nulist):
-            print "Doing ",i,nu
-            if whichfield is not None:
-                # Read input map
-                field=reader.named_slice(whichfield,i)
-                # Generate time stream
-                perfreqstreams=getIntegratedSignal(self.telescope, self.tlist, field, nu, Npix=201, Nfwhm=3)
-            else:
-                # Return Zero
-                perfreqstreams=[np.zeros(len(self.tlist)) for i in range(len(self.telescope.beams))]
-                
-            # Add point sources if requested
-            if (psources is not None):
-                perfreqs=getPointSourceSignal(self.telescope, self.tlist, psources, nu)
-                for i,s in enumerate(perfreqs):
-                    perfreqstreams[i]+=s
+        if parallel:
+            import celery
+            from .celery_tasks import get_stream
+            task_list = celery.group([get_stream.s(self.telescope, self.tlist, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)])
+            task_promise = task_list()
+            task_results = task_promise.get()
+        else:
+            from .celery_tasks import get_stream
+            task_results = [get_stream(self.telescope, self.tlist, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)]
 
-            # Populate stream object
-            for b,stream in enumerate(perfreqstreams):
-                self.streams[b][i,:]=stream
-    
+        for i, perfreqstreams in enumerate(task_results):
+            for b, stream in enumerate(perfreqstreams):
+                self.streams[b][i, :] = stream
+

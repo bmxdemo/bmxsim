@@ -22,6 +22,7 @@ parser.add_option("--moon", dest="moon", default=False, action="store_true",
                   help="Add Moon")
 parser.add_option("-o","--output", dest="outfile", default="testStream.pickle",
                   help="Output filename", type="string")
+parser.add_option("-p", "--parallel", dest="parallel", default=False, action="store_true", help="Run in parallel")
 # default
 for option in parser.option_list:
     if option.default != ("NO", "DEFAULT"):
@@ -39,5 +40,5 @@ if (o.nvss or o.moon or o.sun):
 field=o.whichfield
 if field=="none":
     field=None
-stream.fillStream(reader=None,whichfield=field,Npix=201,Nfwhm=3,psources=psources)
+stream.fillStream(reader=None,whichfield=field,Npix=201,Nfwhm=3,psources=psources, parallel=o.parallel)
 cP.dump(stream,open(o.outfile,'w'))
