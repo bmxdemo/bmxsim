@@ -74,7 +74,7 @@ class CrimeReader:
         return toret
 
     def cosmo_slice(self,i):
-        if (self.cosmo_slices[i]==None):
+        if self.cosmo_slices[i] is None:
             fname=self.dirname+"/"+self.cosmo_prefix+"%03d.fits" % (i+1)
             print "Reading ",fname
             self.cosmo_slices[i],di= hp.read_map(fname, h=True)
@@ -82,7 +82,7 @@ class CrimeReader:
         return self.cosmo_slices[i]
 
     def egfree_slice(self,i):
-        if (self.egfree_slices[i]==None):
+        if self.egfree_slices[i] is None:
             fname=self.dirname+"/"+self.egfree_prefix+"%03d.fits" % (i+1)
             print "Reading ",fname
             self.egfree_slices[i],di= hp.read_map(fname, h=True)
@@ -90,7 +90,7 @@ class CrimeReader:
         return self.egfree_slices[i]
 
     def gfree_slice(self,i):
-        if (self.gfree_slices[i]==None):
+        if self.gfree_slices[i] is None:
             fname=self.dirname+"/"+self.gfree_prefix+"%03d.fits" % (i+1)
             print "Reading ",fname
             self.gfree_slices[i],di= hp.read_map(fname, h=True)
@@ -98,7 +98,7 @@ class CrimeReader:
         return self.gfree_slices[i]
 
     def gsync_slice(self,i):
-        if (self.gsync_slices[i]==None):
+        if self.gsync_slices[i] is None:
             fname=self.dirname+"/"+self.gsync_prefix+"%03d.fits" % (i+1)
             print "Reading ",fname
             self.gsync_slices[i],di= hp.read_map(fname, h=True)
@@ -106,7 +106,7 @@ class CrimeReader:
         return self.gsync_slices[i]
 
     def ptso_slice(self,i):
-        if (self.ptso_slices[i]==None):
+        if self.ptso_slices[i] is None:
             fname=self.dirname+"/"+self.ptso_prefix+"%03d.fits" % (i+1)
 
             print "Reading ",fname
