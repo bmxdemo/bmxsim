@@ -1,7 +1,10 @@
 #
 # Basic object for having datastream
 #
+import cPickle
+
 import numpy as np
+from scipy.interpolate import interp1d
 import astropy.units as u
 from CrimeReader import *
 from ObserveSky import *
@@ -16,7 +19,7 @@ def getTimeList(tstart=Time('2016-08-01 00:00:00')+4*u.hour, dt=1, Ns=3600):
     return [tstart+i*dt*u.s for i in range(Ns)]
 
 class DataStream(object):
-    def __init__ (self, telescope, tlist=getTimeList()):
+    def __init__ (self, telescope, tlist=getTimeList(), tag=None):
         """ Constructor:
             telescope : TelescopeBase object
             tlist : list of times used here in the format
@@ -28,6 +31,17 @@ class DataStream(object):
         dnu=1.0
         self.nulist=np.arange(telescope.numin, telescope.numax, dnu)
         self.streams=[[None]*Nbeams]
+        
+        self.has_tag = False
+        if tag is not None:
+            self.has_tag = True
+            from bmxreduce import datamanager
+            dm = datamanager()
+            reduced_fname = dm.getreducedfname(tag)
+            reduced_file = np.load(reduced_fname)
+            self.reduced_data = dict(reduced_file)
+            reduced_file.close()
+            self.tlist = [Time(i, format="mjd") for i in self.reduced_data["mjd"]]
 
 
     def nuMin(self):
@@ -64,7 +78,6 @@ class DataStream(object):
         print "Set frequencies from crime reader:", self.telescope.numin, self.telescope.numax, len(self.nulist)
 
         ## set the data fields
-        self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         if parallel:
             import celery
             from .celery_tasks import get_stream
@@ -75,7 +88,26 @@ class DataStream(object):
             from .celery_tasks import get_stream
             task_results = [get_stream(self.telescope, self.tlist, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)]
 
+        self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i, perfreqstreams in enumerate(task_results):
             for b, stream in enumerate(perfreqstreams):
                 self.streams[b][i, :] = stream
+
+        if self.has_tag:
+            new_f_idx = np.bitwise_and(self.reduced_data["f"] <= self.nuMax(), self.reduced_data["f"] >= self.nuMin())
+            new_f = self.reduced_data["f"][new_f_idx]
+            interpmat = np.zeros_like(self.reduced_data["data"])
+            interpmat[:, :, :] = np.nan
+            for i in range(len(self.tlist)):
+                f = interp1d(self.nulist, self.streams[0][:, i], kind="cubic")
+                interpmat[0, i, new_f_idx] = f(new_f)
+            interpmat[1] = interpmat[0].copy()
+            self.reduced_data["data"] = interpmat
+
+    def save(self, filename=None):
+        if self.has_tag:
+            np.savez(str(self.reduced_data["tag"]) + "_sim.npz", **self.reduced_data)
+        else:
+            with open("%s.pickle", "wb") as f:
+                cPickle.dump(self, f)
 
