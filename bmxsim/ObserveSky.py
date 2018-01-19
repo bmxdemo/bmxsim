@@ -44,7 +44,7 @@ def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
             skyc_cache = []
             for t in tlist:
                 aaz = beam.AltAz(t, telescope.location)
-                skyc = aaz.transform_to(apc.IRCS)
+                skyc = aaz.transform_to(apc.ICRS)
                 skyc_cache.append(skyc)
 
         for i,t in enumerate(tlist):
