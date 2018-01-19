@@ -10,6 +10,10 @@ import healpy as hp
 import astropy.coordinates.sky_coordinate as X
 import sys
 from matplotlib.pyplot import *
+import bmxsim as bs
+
+tlist_cache = None
+skyc_cache = None
 
 def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     """ Integrate the smooth component of the signal:
@@ -19,10 +23,11 @@ def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
         nu : frequency
         Npix : number of pixels in the beam image to integrate over
         Nfwhm : total size of beam image to use
-        returns: A list of np arrays of length of tslice corresponding to 
+        returns: A list of np arrays of length of tslice corresponding to
                 power measured at times tlist. If single beam (beams = integer):
                 return that particular np array.
     """
+    global tlist_cache, skyc_cache
     ion()
     beams=telescope.beams
     toret=[]
@@ -34,10 +39,16 @@ def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
         ## this defines a lambda vec2pix function to feed to projmap later
         vec2pix=lambda x,y,z:hp.vec2pix(Nside,x,y,z)
         intlist=[]
+        if tlist_cache is None or len(tlist_cache) != len(tlist) or tlist_cache[0] != tlist[0]:
+            tlist_cache = tlist
+            skyc_cache = []
+            for t in tlist:
+                aaz = beam.AltAz(t, telescope.location)
+                skyc = aaz.transform_to(apc.IRCS)
+                skyc_cache.append(skyc)
+
         for i,t in enumerate(tlist):
-            aaz=beam.AltAz(t, telescope.location)
-            skyc=aaz.transform_to(apc.ICRS)
-            rot=(skyc.ra.deg, skyc.dec.deg, 0.)
+            rot=(skyc_cache[i].ra.deg, skyc_cache[i].dec.deg, 0.)
             proj=hp.projector.GnomonicProj(xsize = Npix, ysize = Npix, rot = rot, reso = reso*180*60/np.pi)
             mp=proj.projmap(sigslice,vec2pix)
             csig=(mp*beam_img).sum()
@@ -65,7 +76,7 @@ def getPointSourceSignal(telescope, tlist, sources, nu):
         tlist : list of Time object where you want signal integrated
         sourcelist : an object of type PointSourceList
         nu : frequency
-        returns: A list of np arrays of length of tslice corresponding to 
+        returns: A list of np arrays of length of tslice corresponding to
                 power measured at times tlist. If single beam (beams = integer):
                 return that particular np array.
     """
@@ -92,7 +103,7 @@ def getPointSourceSignal(telescope, tlist, sources, nu):
                 beamsup=beam.beam(ofs[0].rad,ofs[1].rad,nu)
                 # total flux is sum over sources of flux * beam supression
                 sig+=(beamsup*sources.fluxes_mK_fixed(nu, beam)).sum()
-    
+
             srcm=sources.skyCoordList_movable(t,telescope)
             if srcm is not None:
                 # next movable sources (moon, sun)
