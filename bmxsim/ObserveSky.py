@@ -1,7 +1,7 @@
 #
 # Given a telescope, simulate observations
 #
-
+from functools import partial
 import numpy as np
 from astropy.time import Time, TimeMJD
 from astropy import units as u
@@ -12,10 +12,7 @@ import sys
 from matplotlib.pyplot import *
 import bmxsim as bs
 
-tlist_cache = None
-skyc_cache = None
-
-def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
+def getIntegratedSignal(telescope, skyc_list, sigslice, nu, Npix=201, Nfwhm=3):
     """ Integrate the smooth component of the signal:
         telescope : telescope object to simulate
         tlist : list of Time object where you want signal integrated
@@ -31,24 +28,17 @@ def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     ion()
     beams=telescope.beams
     toret=[]
-    for beam in beams:
+    for beam_idx, beam in enumerate(beams):
         reso=Nfwhm*beam.fwhm(nu)/Npix
         beam_img=beam.beamImage(Npix, reso, nu)
         beam_img/=beam_img.sum()
         Nside=int(np.sqrt(len(sigslice)/12))
         ## this defines a lambda vec2pix function to feed to projmap later
-        vec2pix=lambda x,y,z:hp.vec2pix(Nside,x,y,z)
+        vec2pix=partial(hp.vec2pix, Nside)
         intlist=[]
-        if tlist_cache is None or len(tlist_cache) != len(tlist) or tlist_cache[0] != tlist[0]:
-            tlist_cache = tlist
-            skyc_cache = []
-            for t in tlist:
-                aaz = beam.AltAz(t, telescope.location)
-                skyc = aaz.transform_to(apc.ICRS)
-                skyc_cache.append(skyc)
 
-        for i,t in enumerate(tlist):
-            rot=(skyc_cache[i].ra.deg, skyc_cache[i].dec.deg, 0.)
+        for i, skyc in enumerate(skyc_list[beam_idx]):
+            rot=(skyc.ra.deg, skyc.dec.deg, 0.)
             proj=hp.projector.GnomonicProj(xsize = Npix, ysize = Npix, rot = rot, reso = reso*180*60/np.pi)
             mp=proj.projmap(sigslice,vec2pix)
             csig=(mp*beam_img).sum()
@@ -70,7 +60,7 @@ def getIntegratedSignal(telescope, tlist, sigslice, nu, Npix=201, Nfwhm=3):
     return toret
 
 
-def getPointSourceSignal(telescope, tlist, sources, nu):
+def getPointSourceSignal(telescope, skyc_list, sources, nu):
     """ Integrate the point-source component of the signal:
         telescope : telescope object to simulate
         tlist : list of Time object where you want signal integrated
@@ -83,11 +73,9 @@ def getPointSourceSignal(telescope, tlist, sources, nu):
     beams=telescope.beams
     toret=[]
     srcf=sources.skyCoordList_fixed()
-    for beam in beams:
-        li=np.zeros(len(tlist))
-        for i,t in enumerate(tlist):
-            aaz=beam.AltAz(t, telescope.location)
-            skyc=apc.SkyCoord(aaz).transform_to(apc.ICRS)
+    for beam_idx, beam in enumerate(beams):
+        li=np.zeros(len(skyc_list[0]))
+        for i,skyc in enumerate(skyc_list[beam_idx]):
             ## there is a stupid bug in astropy -- this seems to be the only way
             ## to make it "forget" its locationa, otherwise spherical_offsets_to
             ## fails claiming frame is wrong.

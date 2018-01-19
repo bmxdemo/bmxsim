@@ -43,6 +43,15 @@ class DataStream(object):
             reduced_file.close()
             self.tlist = [Time(i, format="mjd") for i in self.reduced_data["mjd"]]
 
+        self.skyc_list = [] # two dimensional array
+        for beam in telescope.beams:
+            skycs = []
+            for t in self.tlist:
+                aaz = beam.AltAz(t, telescope.location)
+                skyc = aaz.transform_to(apc.ICRS)
+                skycs.append(skyc)
+            self.skyc_list.append(skycs)
+
 
     def nuMin(self):
         return self.nulist[0]
@@ -81,12 +90,12 @@ class DataStream(object):
         if parallel:
             import celery
             from .celery_tasks import get_stream
-            task_list = celery.group([get_stream.s(self.telescope, self.tlist, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)])
+            task_list = celery.group([get_stream.s(self.telescope, self.skyc_list, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)])
             task_promise = task_list()
             task_results = task_promise.get()
         else:
             from .celery_tasks import get_stream
-            task_results = [get_stream(self.telescope, self.tlist, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)]
+            task_results = [get_stream(self.telescope, self.skyc_list, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)]
 
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
         for i, perfreqstreams in enumerate(task_results):
@@ -108,6 +117,5 @@ class DataStream(object):
         if self.has_tag:
             np.savez(str(self.reduced_data["tag"]) + "_sim.npz", **self.reduced_data)
         else:
-            with open("%s.pickle", "wb") as f:
+            with open("%s.pickle" % filename, "wb") as f:
                 cPickle.dump(self, f)
-
