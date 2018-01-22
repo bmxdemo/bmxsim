@@ -2,6 +2,7 @@
 # Basic object for having datastream
 #
 import cPickle
+import os
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -19,7 +20,7 @@ def getTimeList(tstart=Time('2016-08-01 00:00:00')+4*u.hour, dt=1, Ns=3600):
     return [tstart+i*dt*u.s for i in range(Ns)]
 
 class DataStream(object):
-    def __init__ (self, telescope, tlist=getTimeList(), tag=None):
+    def __init__ (self, telescope, tlist=getTimeList(), tag=None, serial=None):
         """ Constructor:
             telescope : TelescopeBase object
             tlist : list of times used here in the format
@@ -31,13 +32,14 @@ class DataStream(object):
         dnu=1.0
         self.nulist=np.arange(telescope.numin, telescope.numax, dnu)
         self.streams=[[None]*Nbeams]
+        self.serial = serial
         
         self.has_tag = False
         if tag is not None:
             self.has_tag = True
             from bmxreduce import datamanager
-            dm = datamanager()
-            reduced_fname = dm.getreducedfname(tag)
+            self.dm = datamanager()
+            reduced_fname = self.dm.getreducedfname(tag)
             reduced_file = np.load(reduced_fname)
             self.reduced_data = dict(reduced_file)
             reduced_file.close()
@@ -113,9 +115,24 @@ class DataStream(object):
             interpmat[1] = interpmat[0].copy()
             self.reduced_data["data"] = interpmat
 
-    def save(self, filename=None):
+        self.fields = whichfield.split("+")
+
+    def save(self):
+        """save the data with name format defined in datamanager.
+        This function will create directories if necessary."""
+        filename = self.dm.getreducedsimfname(str(self.reduced_data["tag"]), self.serial, self.fields, pickle_file=not self.has_tag)
+        dirname = os.path.dirname(filename)
+        if not os.path.isdir(dirname): 
+            if not os.path.isdir(os.path.dirname(dirname)): 
+                os.mkdir(os.path.dirname(dirname)) # Create Serial directory
+                os.chmod(os.path.dirname, 0o775)
+            os.mkdir(dirname) # Create Serial/YYMM directory
+            os.chmod(dirname, 0o775)
+
         if self.has_tag:
-            np.savez(str(self.reduced_data["tag"]) + "_sim.npz", **self.reduced_data)
+            np.savez(filename, **self.reduced_data)
         else:
-            with open("%s.pickle" % filename, "wb") as f:
+            with open(filename, "wb") as f:
                 cPickle.dump(self, f)
+
+        os.chmod(filename, 0o664)
