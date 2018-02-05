@@ -20,7 +20,7 @@ class PointSourceCatalog(object):
             path=""
             if os.environ.has_key("BMXSIM_ROOT"):
                 path=os.environ["BMXSIM_ROOT"]+"/"
-            da=ap.io.fits.open("data/nvss-1Jy+.fits")
+            da=ap.io.fits.open("psdata/nvss-1Jy+.fits")
             dat=da[1].data
             self.flux20=dat["FLUX_20_CM"]*1e-3## convert mJy to Jy
             self.skyc=apc.SkyCoord(ra=dat["RA"]*u.deg, dec=dat["DEC"]*u.deg)
