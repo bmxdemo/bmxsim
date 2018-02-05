@@ -11,22 +11,20 @@ app.conf.task_serializer='pickle'
 logger = celery.utils.log.get_task_logger(__name__)
 
 @app.task
-def get_stream(telescope, tlist, nu, i, whichfield, psources):
+def get_stream(telescope, skyc_list, nu, i, whichfield, psources):
     reader=CrimeReader()
     if whichfield is not None:
-        print("not none")
         # Read input map
         field=reader.named_slice(whichfield,i)
         # Generate time stream
-        perfreqstreams=getIntegratedSignal(telescope, tlist, field, nu, Npix=201, Nfwhm=3)
+        perfreqstreams=getIntegratedSignal(telescope, skyc_list, field, nu, Npix=201, Nfwhm=3)
     else:
-        print("hit")
         # Return Zero
-        perfreqstreams=[np.zeros(len(tlist)) for i in range(len(telescope.beams))]
+        perfreqstreams=[np.zeros(len(skyc_list)) for i in range(len(telescope.beams))]
 
     # Add point sources if requested
     if (psources is not None):
-        perfreqs=getPointSourceSignal(telescope, tlist, psources, nu)
+        perfreqs=getPointSourceSignal(telescope, skyc_list, psources, nu)
         for i,s in enumerate(perfreqs):
             perfreqstreams[i]+=s
 
