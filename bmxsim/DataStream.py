@@ -19,6 +19,27 @@ def getTimeList(tstart=Time('2016-08-01 00:00:00')+4*u.hour, dt=1, Ns=3600):
     ## in august we are 4 hours of UTC, otherwise 5
     return [tstart+i*dt*u.s for i in range(Ns)]
 
+
+def get_stream(telescope, skyc_list, nu, i, whichfield, psources):
+    reader=CrimeReader()
+    if whichfield is not None:
+        # Read input map
+        field=reader.named_slice(whichfield,i)
+        # Generate time stream
+        perfreqstreams=getIntegratedSignal(telescope, skyc_list, field, nu, Npix=201, Nfwhm=3)
+    else:
+        # Return Zero
+        perfreqstreams=[np.zeros(len(skyc_list)) for i in range(len(telescope.beams))]
+
+    # Add point sources if requested
+    if (psources is not None):
+        perfreqs=getPointSourceSignal(telescope, skyc_list, psources, nu)
+        for i,s in enumerate(perfreqs):
+            perfreqstreams[i]+=s
+
+    return perfreqstreams
+
+
 class DataStream(object):
     def __init__ (self, telescope, tlist=getTimeList(), tag=None, serial=None):
         """ Constructor:
@@ -91,12 +112,11 @@ class DataStream(object):
         ## set the data fields
         if parallel:
             import celery
-            from .celery_tasks import get_stream
-            task_list = celery.group([get_stream.s(self.telescope, self.skyc_list, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)])
+            from .celery_tasks import get_stream_celery
+            task_list = celery.group([get_stream_ceelry.s(self.telescope, self.skyc_list, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)])
             task_promise = task_list()
             task_results = task_promise.get()
         else:
-            from .celery_tasks import get_stream
             task_results = [get_stream(self.telescope, self.skyc_list, nu, i, whichfield, psources) for i, nu in enumerate(self.nulist)]
 
         self.streams=[np.zeros((len(self.nulist),len(self.tlist)))]
