@@ -46,5 +46,5 @@ if (o.nvss or o.moon or o.sun):
 field=o.whichfield
 if field=="none":
     field=None
-stream.fillStream(reader=None,whichfield=field,Npix=201,Nfwhm=3,psources=psources, parallel=o.parallel)
+stream.fillStream(whichfield=field, Npix=201, Nfwhm=3, psources=psources, parallel=o.parallel)
 stream.save()

@@ -38,7 +38,7 @@ def getIntegratedSignal(telescope, skyc_list, sigslice, nu, Npix=201, Nfwhm=3):
         intlist=[]
 
         for i, skyc in enumerate(skyc_list[beam_idx]):
-            rot=(skyc.ra.deg, skyc.dec.deg, 0.)
+            rot=(skyc.l.deg, skyc.b.deg, 0.)
             proj=hp.projector.GnomonicProj(xsize = Npix, ysize = Npix, rot = rot, reso = reso*180*60/np.pi)
             mp=proj.projmap(sigslice,vec2pix)
             csig=(mp*beam_img).sum()

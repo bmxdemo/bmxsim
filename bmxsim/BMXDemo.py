@@ -3,8 +3,8 @@
 #
 from astropy.coordinates import AltAz, EarthLocation
 import astropy.units as u
-from .TelescopeBase import TelescopeBase
-from .BeamAiry import BeamAiry
+from TelescopeBase import TelescopeBase
+from BeamAiry import BeamAiry
 
 class BMXDemoSingleDish (TelescopeBase):
     """
