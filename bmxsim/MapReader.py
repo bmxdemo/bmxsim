@@ -8,14 +8,20 @@ import numpy as np
 class MapReader:
 
     def __init__ (self, whichfields, freq, sn='000'):
+        """Get input maps
+        whichfields = cosmo, egfree, gfree, gsync, psources, colore, hi4pi
+                     if joined with +, add maps together and return,
+                     e.g. 'cosmo+gsync'
+        freq = frequency list of data. Used to window down maps.
+        sn = serial number string for input maps. Can be a list of strings of
+             length equal to number of '+' joined fields, in which case each
+             field  gets a different serial number"""
 
-        self.fields = whichfields.split('/')
+        self.fields = whichfields.split('+')
+        self.sn = sn.split('+')
 
-        if type(sn) is not list:
-            sn = [sn]*len(self.fields)
-        self.sn = {}
-        for k,val in enumerate(self.fields):
-            self.sn[val] = sn[k]
+        if len(self.sn) == 1:
+            self.sn = self.sn*len(self.fields)
             
         # Get map locations
         self.getmapinfo(freq)
@@ -26,7 +32,7 @@ class MapReader:
         filenames). This will return only maps in the min/max frequency range
         provided in freq, with a buffer of 1 index on either side to help later
         interpolation. HI4PI frequencies, which are very finely spaced, will be
-        a list of lists of frequencies. Sub-lists will be coadded prior to beam
+        a list of lists of frequencies. 
         convolution. """ 
         self.mapdir = {}
         self.prefix = {}
@@ -37,30 +43,29 @@ class MapReader:
             # Grab first field. This requires that fields concatenated with "+"
             # all be the same type, e.g. CRIME, Colore, HI4PI, and have same
             # serial number.
-            x = val.split('+')
-            if x[0] in ['cosmo','egfree','gfree','gsync','psources']:
+            if val in ['cosmo','egfree','gfree','gsync','psources']:
                 # CRIME
-                self.mapdir[val] = 'maps/CRIME/{:s}/'.format(self.sn[val])
-                self.prefix[val] = [k+'_' for k in x]
+                self.mapdir[val] = 'input_maps/CRIME/{:s}/'.format(self.sn[k])
+                self.prefix[val] = val+'_'
                 self.maptype[val] = 'crime'
                 self.freq[val], self.mapind[val] = self.getfreq(val, freq)
-            elif x[0] in ['colore']:
+            elif val in ['colore']:
                 # COLORE
-                self.mapdir[val] = 'maps/colore/{:s}/'.format(self.sn[val])
-                self.prefix[val] = ['colore_imap_s1_nu']
+                self.mapdir[val] = 'input_maps/colore/{:s}/'.format(self.sn[k])
+                self.prefix[val] = 'colore_imap_s1_nu'
                 self.maptype[val] = 'colore'
                 self.freq[val], self.mapind[val] = self.getfreq(val, freq)
-            elif x[0] in ['hi4pi']:
+            elif val in ['hi4pi']:
                 # HI4PI
-                self.mapdir[val] = 'maps/HI4PI/stitched/'
-                self.prefix[val] = ['HI_mK_f']
+                self.mapdir[val] = 'input_maps/HI4PI/stitched/'
+                self.prefix[val] = 'HI_mK_f'
                 self.maptype[val] = 'hi4pi'
                 self.freq[val], self.mapind[val] = self.getfreq(val, freq)
             else:
                 raise ValueError('{:s} not a recognized field'.format(val))
 
     def getfreq(self, fld, freq):
-        """Get frequencies from CRIME nuTable.txt"""
+        """Get frequencies from input map nuTable.txt"""
         
         # Get frequency list
         if self.maptype[fld] == 'crime':
@@ -91,8 +96,8 @@ class MapReader:
         # Only return needed frequencies
         f = f[ind]
 
-        # Make a list of lists over which to coadd input maps prior to beam
-        # convolution 
+        # HI4PI has very fine freq bins, so make a list of lists over which to
+        # coadd input maps prior to beam convolution 
         if self.maptype[fld] == 'hi4pi':
             # Construct bin edges
             be_lo = freq - df/2
@@ -122,14 +127,16 @@ class MapReader:
            e.g. field = self.named_slice('cosmo+gsync', 0)
         """
 
-        mt = self.maptype[fld]
+        fld0 = fld.split('+')[0]
+
+        mt = self.maptype[fld0]
 
         if mt in ['crime','colore']:
             # 1 indexed
-            mi = self.mapind[fld][i] + 1
+            mi = self.mapind[fld0][i] + 1
         elif mt in ['hi4pi']:
             # Zero indexed
-            mi = self.mapind[fld][i]
+            mi = self.mapind[fld0][i]
 
         # If only a single map just load it, otherwise loop over maps and
         # add. This is needed for maps with high frequency resolution like
@@ -141,15 +148,20 @@ class MapReader:
             # running in parallel so the proper freq can be passed to
             # getIntegratedSignal. But since it is in parallel, the modificaiton
             # of this attribute does not get passed back to fillStream. 
-            self.freq[fld][i] = self.freq[fld][i].mean()
+            self.freq[fld0][i] = self.freq[fld0][i].mean()
 
         toret=None
-        for j in range(len(fld.split('+'))):
+        for fld0 in fld.split('+'):
+
+            # Make sure all maptypes are the same as the first
+            if self.maptype[fld0] != mt:
+                raise ValueError('Not all maptypes the same')
+
             # Loop over foreground and signal components
             hmap = None
             for mi0 in mi:
                 # Loop over frequencies
-                fname = self.mapdir[fld] + self.prefix[fld][j] + '{:03d}.fits'.format(mi0)
+                fname = self.mapdir[fld0] + self.prefix[fld0] + '{:03d}.fits'.format(mi0)
                 hmap0 = hp.read_map(fname)
                 if hmap is None:
                     hmap = hmap0
