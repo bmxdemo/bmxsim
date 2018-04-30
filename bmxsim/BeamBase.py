@@ -55,7 +55,7 @@ class BeamBase(object):
         Kelvin=lamb**2/(2*const.k*self.Omega(nu))*flux*1e-26
         return Kelvin*1e3
     
-    def beamImage (self, N, reso, nu):
+    def beamImage(self, N, reso, nu):
         """ returns beam image.
         N - number of pixels in x,y directions
         reso - pixel size in radians
@@ -63,17 +63,13 @@ class BeamBase(object):
 
         returns NxN np array containing beam image.
         """
-        toret=np.zeros((N,N))
-        for i in range (N):
-            for j in range(N):
-                b=self.beam(reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu)
-                if (np.isnan(b)):
-                    print "Beam is NaN. Not good!"
-                    print i,j, reso*(i-(N-1)/2.), reso*(j-(N-1)/2.),nu
-                    stop()
-                toret[i,j]=b
-
-        return toret
+        dx = np.arange(-(N-1)/2.,(N-1)/2.+1)*reso
+        xx,yy = np.meshgrid(dx,dx)
+        b = self.beam(xx,yy,nu)
+        if np.any(np.isnan(b)):
+            print "Beam is NaN. Not good!"
+            stop()
+        return b
             
     def AltAz(self, time, location):
         """Returns the astropy AltAz object for
