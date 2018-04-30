@@ -34,21 +34,20 @@ class BeamAiry(BeamBase):
         """ returns beam delta_phi and delta_theta from the
             boresight -- these are really coordinates in gnomonomic projection, 
             and not delta_ra, delta_dec
-            delta_phi, delta_theta in *radians*
-            nu -- observing frequency in MHz
+            delta_phi, delta_theta in *radians*, can be scalar or equal sized arrays
+            nu -- observing frequency in MHz, must be scalar
         """
+
+        # Convert to arrays
+        delta_phi = np.atleast_1d(delta_phi)
+        delta_theta = np.atleast_1d(delta_theta)
+
         ## note flat sky approx!! FIX!!!
         theta=np.sqrt(delta_phi**2+delta_theta**2) 
         x=np.pi*self.DoverLam(nu)*theta
-        if (type(x)==type(1.0)) or (type(x)==np.float64):
-            if (x==0):
-                beam=1.0
-            else:
-                beam=(2*jn(1,x))**2/x**2
-        else:
-        # we must be dealing with a list
-            beam=(2*jn(1,x))**2/x**2
-            beam[np.where(x==0)]=1.0
+        beam=(2*jn(1,x))**2/x**2
+        beam[np.where(x==0)]=1.0
+
         return beam
 
     def hpbw(self,nu):
